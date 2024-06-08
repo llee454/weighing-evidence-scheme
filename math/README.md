@@ -12,3 +12,21 @@ $ ls
 $ guile -L .
 scheme@(guile-user)> (import (math evidence))
 ```
+
+Dependencies
+------------
+
+* Amina - a template language that uses Guile Scheme
+* GuileLib - the Guile Scheme Library
+
+To install Amina, use OPAM. The package manager for OCaml.
+
+```bash
+opam pin amina https://github.com/llee454/amina.gi -y
+```
+
+and if necessary afterwards run:
+
+```bash
+opam install amina -y
+```
