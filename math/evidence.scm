@@ -2,7 +2,7 @@
 ; (load "./evidence.scm")
 ; (import (math evidence))
 (library (math evidence (1 0 0))
-  (export get-posterior-probabilities)
+  (export get-posterior-probabilities get-weights get-total-weights)
   (import (rnrs (6)) (math matrix ((>= 1))))
 
   ; This function helps you determine how likely a set of hypotheses
@@ -34,12 +34,6 @@
   ; Where P(Hi|E0 /\ E1 /\ ...) represents the probability that
   ; hypothesis Hi is true given that we observed the evidence E0, E1,
   ; and so on.
-  ;
-  ; In Maxima, this function could be written as:
-  ; ph (peh) :=
-  ;   block ([xs],
-  ;     xs: exp (log (peh) . columnvector ([1, 1, 1, 1])),
-  ;     xs / ([1, 1, 1, 1] . xs))$
   (define (get-posterior-probabilities x)
     (let*
       ([n (vector-length x)]
@@ -63,4 +57,3 @@
         #(0.04 0.05 0.2 0.2)))
     '#(0.4139908256880735   0.5733944954128439
        0.011467889908256887 0.0011467889908256884)))
-)

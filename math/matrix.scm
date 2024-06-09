@@ -3,8 +3,9 @@
 ; (import (math matrix))
 (library (math matrix (1 0 0))
   (export
-    vector-sum vector-* matrix-ref matrix=? matrix-copy matrix-set!
-    matrix-* matrix-map! matrix-map *-vector-matrix *-matrix-vector)
+    vector-sum vector-* matrix-get-dims matrix-ref matrix=?
+    matrix-copy make-matrix matrix-set! matrix-* matrix-map!
+    matrix-map *-vector-matrix *-matrix-vector)
   (import (rnrs (6)))
 
 ; Accepts one argument: x, a vector; and returns the sum of all of the
@@ -30,6 +31,17 @@
       (set! res (+ res (* (vector-ref x i) (vector-ref y i)))))))
 
 (assert (= (vector-* '#(3 5 7) '#(7 11 13)) 167))
+
+; Accepts a matrix x and returns two natural numbers, n and m,
+; where n specifies the number of rows in x and m specifies the number
+; of columns.
+(define (matrix-get-dims x)
+  (let
+    ([n (vector-length x)])
+    (if (= n 0) (values 0 0)
+      (values n (vector-length (vector-ref x 0))))))
+
+(assert (equal? (matrix-get-dims '#(#(1 2 3) #(4 5 6))) (values 2 3)))
 
 ; Accepts three arguments: x, a matrix; i, a natural number that
 ; represents a row index; and j, a natural number that represents a
@@ -77,16 +89,42 @@
         ([m (vector-length (vector-ref x 0))]
          [res (make-vector n)])
         (do
-          ([i 0 (+ i 1)]
-           [row (make-vector m)])
+          ([i 0 (+ i 1)])
           ((= i n) res)
+          (let
+           ([row (make-vector m)])
+            (vector-set! res i row)
+            (do
+              ([j 0 (+ j 1)])
+              ((= j m))
+              (vector-set! row j (matrix-ref x i j)))))))))
+
+(assert (equal? (matrix-copy '#(#(1 2) #(3 4))) '#(#(1 2) #(3 4))))
+
+; Accepts three arguments: f, a function that accepts two natural
+; numbers i and j and returns the real number that should be stored in
+; matrix location (i, j); n, a natural number that specifies the number
+; of rows that the matrix should have; and m, a natural number that
+; specifies the number of columns that the matrix should have; and
+; returns a matrix with n rows and m columns where the (i, j) element
+; equals (f i j).
+(define (make-matrix f n m)
+  (if (= n 0)
+    (make-vector 0)
+    (let
+      ([res (make-vector n)])
+      (do
+        ([i 0 (+ i 1)])
+        ((= i n) res)
+        (let
+          ([row (make-vector m)])
           (vector-set! res i row)
           (do
             ([j 0 (+ j 1)])
             ((= j m))
-            (vector-set! row j (matrix-ref x i j))))))))
+            (vector-set! row j (f i j))))))))
 
-(assert (equal? (matrix-copy '#(#(1 2) #(3 4))) '#(#(3 4) #(3 4))))
+(assert (matrix=? (make-matrix (lambda (i j) (+ (* 2 i) j)) 2 3) '#(#(0 1 2) #(2 3 4))))
 
 ; Accepts four arguments: x, a matrix; i and j, natual numbers; and y,
 ; a real number; and sets the (i, j) element in x to y.
