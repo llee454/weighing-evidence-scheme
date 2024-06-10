@@ -2,8 +2,8 @@
 ; (load "./evidence.scm")
 ; (import (math evidence))
 (library (math evidence (1 0 0))
-  (export get-posterior-probabilities get-weights get-total-weights)
-  (import (rnrs (6)) (math matrix ((>= 1))))
+  (export get-posterior-probabilities get-weights get-total-weights test)
+  (import (rnrs (6)) (math vector ((>= 1))) (math matrix ((>= 1))))
 
   ; This function helps you determine how likely a set of hypotheses
   ; are given a some pieces of independent evidence.
@@ -45,7 +45,7 @@
                  (matrix-map log x)
                  (make-vector n 1)))]
        ; the probability of seeing all of the pieces of evidence.
-       [pe (vector-* (make-vector n 1) phes)])
+       [pe (vector* (make-vector n 1) phes)])
       (vector-map (lambda (phe) (/ phe pe)) phes)))
 
   (assert (equal?
@@ -57,3 +57,19 @@
         #(0.04 0.05 0.2 0.2)))
     '#(0.4139908256880735   0.5733944954128439
        0.011467889908256887 0.0011467889908256884)))
+
+(define (get-weights x)
+  (let*-values
+    ([(n m) (matrix-get-dims x)]
+     [(M) (make-matrix (lambda (i j) (if (= i j) 0 1)) n m)])
+    (matrix-map exp
+      (matrix-
+        (matrix-map log x)
+        (matrix-map log (matrix* M x))))))
+
+(define (test x)
+  (let*-values
+    ([(n m) (matrix-get-dims x)]
+     [(M) (make-matrix (lambda (i j) (if (= i j) 0 1)) n m)])
+    (matrix* M x)))
+)

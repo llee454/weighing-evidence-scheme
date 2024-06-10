@@ -3,34 +3,11 @@
 ; (import (math matrix))
 (library (math matrix (1 0 0))
   (export
-    vector-sum vector-* matrix-get-dims matrix-ref matrix=?
-    matrix-copy make-matrix matrix-set! matrix-* matrix-map!
-    matrix-map *-vector-matrix *-matrix-vector)
-  (import (rnrs (6)))
-
-; Accepts one argument: x, a vector; and returns the sum of all of the
-; elements in x.
-(define (vector-sum x)
-  (let
-    ([n (vector-length x)])
-    (do
-      ([i (- n 1) (- i 1)]
-       [acc 0 (+ acc (vector-ref x i))])
-      ((< i 0) acc))))
-
-(assert (= (vector-sum '#(1 2 3)) 6))
-
-; Returns the dot product of two vectors.
-(define (vector-* x y)
-  (let
-    ([n (vector-length x)]
-     [res 0])
-    (do
-      ([i 0 (+ i 1)])
-      ((= i n) res)
-      (set! res (+ res (* (vector-ref x i) (vector-ref y i)))))))
-
-(assert (= (vector-* '#(3 5 7) '#(7 11 13)) 167))
+    matrix-get-dims matrix-ref matrix=?
+    matrix-copy make-matrix make-constant-matrix matrix-set! matrix* matrix-mapi!
+    matrix-mapi matrix-map! matrix-map matrix+ matrix- *-vector-matrix
+    *-matrix-vector)
+  (import (rnrs (6)) (math vector (1)))
 
 ; Accepts a matrix x and returns two natural numbers, n and m,
 ; where n specifies the number of rows in x and m specifies the number
@@ -126,6 +103,12 @@
 
 (assert (matrix=? (make-matrix (lambda (i j) (+ (* 2 i) j)) 2 3) '#(#(0 1 2) #(2 3 4))))
 
+; Accepts three arguments: n and m, two natural numbers; and x, a
+; number; and returns a matrix with n rows and m columns where every
+; element equals x.
+(define (make-constant-matrix n m x)
+  (make-matrix (lambda (i j) x) n m))
+
 ; Accepts four arguments: x, a matrix; i and j, natual numbers; and y,
 ; a real number; and sets the (i, j) element in x to y.
 (define (matrix-set! x i j y)
@@ -139,37 +122,43 @@
     (matrix=? m '#(#(1 2) #(11 4)))))
 
 ; Accepts two matrices and returns their product.
-(define (matrix-* x y)
-  (let
-    ([n (vector-length x)])
-    (if (= n 0)
-      (make-vector 0)
-      (let
-        ([m (vector-length (vector-ref x 0))]
-         [res (make-vector n)])
+(define (matrix* x y)
+  (let*-values
+    ([(n m') (matrix-get-dims x)]
+     [(n' m) (matrix-get-dims y)])
+    (assert (= m' n'))
+    (let
+      ([res (make-vector n)])
+      (do
+        ([i 0 (+ i 1)])
+        ((= i n) res)
+        (vector-set! res i (make-vector m))
         (do
-          ([i 0 (+ i 1)])
-          ((= i n) res)
-          (vector-set! res i (make-vector m))
+          ([j 0 (+ j 1)])
+          ((= j m))
+	      ; multiply the i-th row vector in x with the j-th column
+	      ; vector in y and save the result to acc.
           (do
-            ([j 0 (+ j 1)])
-            ((= j m))
-	        ; multiply the i-th row vector in x with the j-th column
-	        ; vector in y and save the result to acc.
-            (do
-              ([k 0 (+ k 1)]
-               [acc 0 (+ acc (* (matrix-ref x i k) (matrix-ref y k j)))])
-              ((= k n) (matrix-set! res i j acc)))
-            ))))))
+            ([k 0 (+ k 1)]
+             [acc 0 (+ acc (* (matrix-ref x i k) (matrix-ref y k j)))])
+            ((= k m') (matrix-set! res i j acc))))))))
 
 (assert (matrix=?
-  (matrix-* '#(#(1 2) #(3 4)) '#(#(5 6) #(7 8)))
+  (matrix* '#(#(1 2)) '#(#(3) #(4)))
+  '#(#(11))))
+
+(assert (matrix=?
+  (matrix* '#(#(1 2) #(3 4)) '#(#(5 6) #(7 8)))
   '#(#(19 22) #(43 50))))
 
-; Accepts two arguments: f, a function that accepts a real number and
-; returns a real number; and x, a matrix; and replaces every element y
-; in x with (f y).
-(define (matrix-map! f x)
+; Accepts two arguments:
+; * f, a function that accepts three arguments:
+;   * i and j, two natural numbers
+;   * and x, a real number
+;   and returns a real number
+; and x, a matrix; and replaces every element (i, j) in x with (f i j
+; x[i][j]).
+(define (matrix-mapi! f x)
   (let
     ([n (vector-length x)])
     (if (= n 0) x
@@ -181,18 +170,22 @@
           (do
             ([j 0 (+ j 1)])
             ((= j m))
-            (matrix-set! x i j (f (matrix-ref x i j)))))))))
+            (matrix-set! x i j (f i j (matrix-ref x i j)))))))))
 
 (assert (matrix=?
   (let
     ([x (vector (vector 1 2) (vector 3 4))])
-    (matrix-map! (lambda (x) (* x x)) x))
+    (matrix-mapi! (lambda (i j x) (* x x)) x))
   '#(#(1 4) #(9 16))))
 
-; Accepts two arguments: f, a function that accepts a real number and
-; returns a real number; and x, a real matrix; and creates a new matrix
-; whose (i, j) element equals (f x[i][j]).
-(define (matrix-map f x)
+; Accepts two arguments:
+; * f, a function that accepts three arguments:
+;   * i and j, two natural numbers
+;   * and x, a real number
+;   and returns a real number
+; and x, a real matrix; and creates a new matrix
+; whose (i, j) element equals (f i j x[i][j]).
+(define (matrix-mapi f x)
   (let*
     ([n (vector-length x)]
      [res (make-vector n)])
@@ -208,11 +201,32 @@
             (do
               ([j 0 (+ j 1)])
               ((= j m))
-              (vector-set! row j (f (matrix-ref x i j))))))))))
+              (vector-set! row j (f i j (matrix-ref x i j))))))))))
+
+(define (matrix-map! f x)
+  (matrix-mapi! (lambda (i j y) (f y)) x))
+
+(define (matrix-map f x)
+  (matrix-mapi (lambda (i j y) (f y)) x))
+
+(define (matrix+ x y)
+  (matrix-mapi (lambda (i j z) (+ z (matrix-ref y i j))) x))
 
 (assert (matrix=?
-  (matrix-map (lambda (x) (* x x)) '#(#(1 2) #(3 4)))
-  '#(#(1 4) #(9 16))))
+  (matrix+ '#(#(1 2) #(3 4)) '#(#(5 6) #(7 8)))
+  '#(#(6 8) #(10 12))))
+
+(define (matrix- x y)
+  (matrix-mapi (lambda (i j z) (- z (matrix-ref y i j))) x))
+
+(assert (matrix=?
+  (matrix- '#(#(1 2) #(3 4)) '#(#(5 6) #(7 8)))
+  '#(#(-4 -4) #(-4 -4))))
+
+; (define (matrix-fold f init x)
+;   (let*-values
+;     ([(n m) (matrix-get-dims x)])
+;     (
 
 ; Accepts two arguments: vec, a vector of real numbers that represents
 ; a row vector; and mat, a real matrix; and returns the product of vec
