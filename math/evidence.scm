@@ -40,12 +40,9 @@
        ; Returns a vector where the i-th element represents the
        ; probability that the i-th hypothesis is true and that we would
        ; see all of the pieces of evidence.
-       [phes (vector-map exp
-               (*-matrix-vector
-                 (matrix-map log x)
-                 (make-vector n 1)))]
+       [phes (vector-map vector-prod x)]
        ; the probability of seeing all of the pieces of evidence.
-       [pe (vector* (make-vector n 1) phes)])
+       [pe (vector-sum phes)])
       (vector-map (lambda (phe) (/ phe pe)) phes)))
 
   (assert (equal?
@@ -55,8 +52,8 @@
         #(0.16 1.0  0.5  0.5)
         #(0.16 0.05 0.5  0.2)
         #(0.04 0.05 0.2 0.2)))
-    '#(0.4139908256880735   0.5733944954128439
-       0.011467889908256887 0.0011467889908256884)))
+    '#(0.41399082568807344 0.5733944954128442
+       0.011467889908256883 0.0011467889908256884)))
 
 (define (get-weights x)
   (let*-values

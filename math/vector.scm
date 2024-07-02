@@ -1,6 +1,6 @@
 ; This library defines functions for performing vector calculations.
 (library (math vector (1 0 0))
-  (export vector-foldi vector-fold vector-sum vector-forall? vector*)
+  (export vector-foldi vector-fold vector-sum vector-prod vector-forall? vector*)
   (import (rnrs (6)))
 
   ; Accepts three arguments: f, a function that accepts two arguments, a
@@ -32,6 +32,12 @@
   (define (vector-sum x) (vector-fold + 0 x))
 
   (assert (= (vector-sum '#(1 2 3)) 6))
+
+  ; Accepts one argument: x, a vector; and returns the product of all of the
+  ; elements in x.
+  (define (vector-prod x) (vector-fold * 1 x))
+
+  (assert (= (vector-prod '#(1 2 3)) 6))
 
   ; Accepts two arguments: f, a function that accepts a value and
   ; returns a boolean; and x, a vector; and returns true iff f returns
