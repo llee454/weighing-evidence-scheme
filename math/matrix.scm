@@ -4,7 +4,8 @@
 (library (math matrix (1 0 0))
   (export
     matrix-get-dims matrix-ref matrix=?
-    matrix-copy make-matrix make-constant-matrix matrix-set! matrix* matrix-mapi!
+    matrix-copy make-matrix matrix-transpose make-constant-matrix
+    matrix-set! matrix* matrix-mapi!
     matrix-mapi matrix-map! matrix-map matrix+ matrix- *-vector-matrix
     *-matrix-vector)
   (import (rnrs (6)) (math vector (1)))
@@ -102,6 +103,16 @@
             (vector-set! row j (f i j))))))))
 
 (assert (matrix=? (make-matrix (lambda (i j) (+ (* 2 i) j)) 2 3) '#(#(0 1 2) #(2 3 4))))
+
+; Accepts one argument: x, a matrix; and returns its transpose.
+(define (matrix-transpose x)
+  (let*-values
+    ([(n m) (matrix-get-dims x)])
+    (make-matrix
+      (lambda (i j) (matrix-ref x j i))
+      m n)))
+
+(assert (equal? (matrix-transpose '#(#(1 2) #(3 4))) '#(#(1 3) #(2 4))))
 
 ; Accepts three arguments: n and m, two natural numbers; and x, a
 ; number; and returns a matrix with n rows and m columns where every

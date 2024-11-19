@@ -11,6 +11,7 @@ $ ls
 ... math ...
 $ guile -L .
 scheme@(guile-user)> (import (math evidence))
+scheme@(guile-user)> ,reload (math evidence)
 ```
 
 Dependencies
